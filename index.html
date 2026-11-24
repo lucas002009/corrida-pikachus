@@ -52,6 +52,10 @@ button:disabled{cursor:not-allowed}
 .check input{width:auto}
 .stage{position:relative;background:#2f7d32;border-radius:16px;overflow:hidden;border:3px solid #1d5a20;min-width:0}
 .scroller{max-height:72vh;overflow-y:auto}
+.maxbtn{position:absolute;top:4px;left:6px;z-index:2;width:30px;height:28px;border:0;border-radius:8px;background:#1b1f3bcc;color:#fff8e1;font-size:16px;line-height:1;cursor:pointer}
+.maxbtn:hover{background:#1b1f3b}
+.stage.max{position:fixed;inset:0;z-index:15;border-radius:0;border:0}
+.stage.max .scroller{max-height:100vh;height:100vh}
 canvas{display:block;width:100%}
 .hud{position:absolute;top:44px;right:10px;background:#1b1f3bdd;border-radius:12px;padding:8px 12px;font-size:13px;min-width:150px;pointer-events:none}
 .hud h3{margin:0 0 4px;font-family:var(--display);font-weight:400;color:var(--volt);font-size:16px}
@@ -120,10 +124,11 @@ canvas{display:block;width:100%}
       </div>
       <label class="check" for="som"><input type="checkbox" id="som" checked> Som ligado</label>
       <button class="go" id="largar" type="button">Largar!</button>
-      <p class="note">Durante a corrida cada Pikachu muda de ritmo ao acaso, pode levar um choque do trovão (arranca na frente) ou tropeçar. Ninguém sabe quem ganha até o fim.</p>
+      <p class="note">Durante a corrida cada Pikachu muda de ritmo ao acaso, pode levar um choque do trovão e tropeçar. Ninguém sabe quem ganha até o fim.</p>
     </aside>
 
     <section class="stage" aria-label="Pista de corrida">
+      <button class="maxbtn" id="maxbtn" type="button" title="Maximizar a pista" aria-label="Maximizar a pista">⛶</button>
       <div class="scroller" id="scroller"><canvas id="pista"></canvas></div>
       <div class="timer" id="timer">0,0s</div>
       <div class="hud" id="hud" hidden><h3>Ao vivo</h3><ol id="live"></ol></div>
@@ -266,7 +271,7 @@ function desenhar(){
       ctx.fillStyle=pos===1?'#ffd23f':'#fff8e1'; ctx.fillText(pos+'º',x+s*.4,ly); }
   });
   ctx.textBaseline='alphabetic';
-  flashes=flashes.filter(f=>f.t>0); flashes.forEach(f=>raio(f.x-cam,f.y));
+  flashes=flashes.filter(f=>f.t>0); flashes.forEach(f=>raio(wx(f.r.p)-cam,f.y));
 }
 
 function rankAtual(){ return [...racers].sort((a,b)=> (b.done-a.done) || (a.done? a.ft-b.ft : b.p-a.p)); }
@@ -276,10 +281,9 @@ function passo(dt){
     if(r.done){ r.ph+=dt*4; return; }
     if(raceT>=r.next){ r.target=base*(.65+Math.random()*.7); r.next=raceT+.4+Math.random()*1.2*(D/20); }
     if(r.boost<=0&&r.stun<=0){
-      if(Math.random()<dt*.09*(20/D)){ r.boost=.8+Math.random()*.6; flashes.push({x:wx(r.p),y:top+r.i*laneH+laneH*.6,t:.18}); zap(); }
-      else if(Math.random()<dt*.045*(20/D)){ r.stun=.4+Math.random()*.6; }
+      if(Math.random()<dt*.09*(20/D)){ r.stun=.4+Math.random()*.6; flashes.push({r,y:top+r.i*laneH+laneH*.6,t:r.stun}); zap(); }
     }
-    let alvo=r.target; if(r.boost>0){alvo*=2.1;r.boost-=dt;} if(r.stun>0){alvo*=.08;r.stun-=dt;}
+    let alvo=r.target; if(r.stun>0){alvo*=.08;r.stun-=dt;}
     r.v+=(alvo-r.v)*Math.min(1,dt*3);
     r.p+=r.v*dt; r.ph+=dt*(8+r.v*D*10);
     if(r.p>=1){ r.p=1; r.done=true; r.ft=raceT; finished.push(r); if(finished.length===1)fanfarra(); else tom(660,.08,'square',.03); }
@@ -290,7 +294,7 @@ function passo(dt){
   cam+=(alvoCam-cam)*Math.min(1,dt*4);
   $('timer').textContent=raceT.toFixed(1).replace('.',',')+'s';
   $('live').innerHTML=rankAtual().slice(0,5).map(r=>`<li>${esc(r.name)}${r.done?' ✓':''}</li>`).join('');
-  if(finished.length===racers.length){ state='done'; setTimeout(resultado,1100); }
+  if(finished.length>=Math.min(3,racers.length)){ state='done'; setTimeout(resultado,1100); }
 }
 function loop(ts){
   const dt=Math.min(.05,(ts-(lastTs||ts))/1000); lastTs=ts;
@@ -318,20 +322,25 @@ function resultado(){
   $('largar').disabled=racers.length<2;
   const nv=+$('vencedores').value, fmt=t=>t.toFixed(2).replace('.',',')+'s';
   $('resTit').textContent = nv>1 ? `Os ${Math.min(nv,finished.length)} primeiros!` : 'Temos um campeão!';
-  const ord=[1,0,2].filter(i=>finished[i]);
+  const ordem=[...finished,...rankAtual().filter(r=>!r.done)]; const ord=[1,0,2].filter(i=>finished[i]);
   $('podium').innerHTML=ord.map(i=>`<div class="step s${i+1}"><span class="pos">${i+1}º</span><span class="nm">${esc(finished[i].name)}</span><span class="tm">${fmt(finished[i].ft)}</span></div>`).join('');
-  $('rank').innerHTML=finished.map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${fmt(r.ft)}</span></li>`).join('');
+  $('rank').innerHTML=ordem.map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${r.done?fmt(r.ft):'—'}</span></li>`).join('');
   $('modal').hidden=false; $('denovo').focus();
 }
 $('largar').onclick=largar; $('denovo').onclick=largar;
 $('fechar').onclick=()=>{ $('modal').hidden=true; };
 $('copiar').onclick=async()=>{
-  const txt='⚡ Corrida dos Pikachus\n'+finished.map((r,i)=>`${i+1}º ${r.name}`).join('\n');
+  const txt='⚡ Corrida dos Pikachus\n'+[...finished,...rankAtual().filter(r=>!r.done)].map((r,i)=>`${i+1}º ${r.name}`).join('\n');
   try{ await navigator.clipboard.writeText(txt); $('copiar').textContent='Copiado!'; }
   catch(e){ const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents($('rank')); s.removeAllRanges(); s.addRange(rg); $('copiar').textContent='Selecionado: use Ctrl+C'; }
   setTimeout(()=>$('copiar').textContent='Copiar resultado',2000);
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')$('modal').hidden=true; });
+const stageEl=document.querySelector('.stage');
+function setMax(on){ stageEl.classList.toggle('max',on); $('maxbtn').textContent=on?'✕':'⛶'; $('maxbtn').title=$('maxbtn').ariaLabel=on?'Sair da tela cheia':'Maximizar a pista';
+  try{ if(on&&!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{}); if(!on&&document.fullscreenElement)document.exitFullscreen(); }catch(e){} }
+$('maxbtn').onclick=()=>setMax(!stageEl.classList.contains('max'));
+document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement&&stageEl.classList.contains('max'))setMax(false); });
 
 montar(); requestAnimationFrame(loop);
 })();
