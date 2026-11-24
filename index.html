@@ -1,0 +1,338 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Corrida dos Pikachus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800&display=swap">
+<style>
+[hidden]{display:none!important}
+/* Layout: estádio — painel de controle escuro à esquerda, pista gramada à direita; um só visual (dia de corrida), sem tema alternativo */
+:root{
+  --ink:#1b1f3b; --ink-2:#262b52; --ink-3:#343a6b;
+  --volt:#ffd23f; --volt-deep:#f4a300; --cheek:#e63946;
+  --paper:#fff8e1; --muted:#b9bde0;
+  --display:"Lilita One","Arial Rounded MT Bold",system-ui,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ink);color:var(--paper);font-family:var(--body);font-size:15px;line-height:1.45;min-height:100vh;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;
+  background-image:radial-gradient(circle at 15% -10%,#2f3670 0,transparent 45%),radial-gradient(circle at 100% 0,#3a2f5e 0,transparent 40%);}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,5vw,46px);line-height:1;margin:0;color:var(--volt);
+  text-shadow:0 3px 0 var(--volt-deep),0 6px 0 #00000055;letter-spacing:.5px;text-wrap:balance}
+header p{margin:0;color:var(--muted);flex:1 1 260px;min-width:0}
+.bolt{width:44px;height:44px;flex:none}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--ink-2);border:1px solid var(--ink-3);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px}
+label,.lbl{font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:6px}
+textarea,input,select{width:100%;font:inherit;color:var(--paper);background:var(--ink);border:1px solid var(--ink-3);border-radius:10px;padding:9px 10px}
+textarea{min-height:170px;resize:vertical;line-height:1.5}
+textarea:focus,input:focus,select:focus,button:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.row{display:flex;gap:8px;align-items:end}
+.row>*{min-width:0}
+.count{font-size:13px;color:var(--muted);margin-top:4px}
+.count b{color:var(--volt)}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+button:disabled{cursor:not-allowed}
+.btn2{background:var(--ink-3);color:var(--paper);padding:9px 12px;font-weight:700;white-space:nowrap}
+.btn2:hover:not(:disabled){background:#41488a}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg button{background:var(--ink);border:1px solid var(--ink-3);color:var(--paper);padding:8px 0;font-weight:800;font-variant-numeric:tabular-nums}
+.seg button[aria-pressed="true"]{background:var(--volt);color:var(--ink);border-color:var(--volt)}
+.go{font-family:var(--display);font-size:26px;letter-spacing:.5px;background:var(--volt);color:var(--ink);padding:14px;border-radius:14px;
+  box-shadow:0 5px 0 var(--volt-deep);transition:transform .08s,box-shadow .08s}
+.go:hover:not(:disabled){filter:brightness(1.05)}
+.go:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--volt-deep)}
+.go:disabled{opacity:.5}
+.check{display:flex;align-items:center;gap:8px;font-weight:700;text-transform:none;letter-spacing:0;font-size:14px;color:var(--paper);margin:0}
+.check input{width:auto}
+.stage{position:relative;background:#2f7d32;border-radius:16px;overflow:hidden;border:3px solid #1d5a20;min-width:0}
+.scroller{max-height:72vh;overflow-y:auto}
+canvas{display:block;width:100%}
+.hud{position:absolute;top:44px;right:10px;background:#1b1f3bdd;border-radius:12px;padding:8px 12px;font-size:13px;min-width:150px;pointer-events:none}
+.hud h3{margin:0 0 4px;font-family:var(--display);font-weight:400;color:var(--volt);font-size:16px}
+.hud ol{margin:0;padding-left:20px;font-variant-numeric:tabular-nums}
+.hud li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.timer{position:absolute;bottom:10px;left:10px;background:#1b1f3bdd;border-radius:12px;padding:4px 12px;font-family:var(--display);font-size:20px;color:var(--volt);font-variant-numeric:tabular-nums;pointer-events:none}
+.count3{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:clamp(90px,16vw,180px);color:var(--volt);
+  text-shadow:0 6px 0 var(--volt-deep),0 12px 30px #000a;pointer-events:none}
+.modal{position:fixed;inset:0;background:#0b0d22cc;display:grid;place-items:center;padding:20px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px));z-index:20}
+.card{background:var(--ink-2);border:2px solid var(--volt);border-radius:20px;width:min(560px,100%);max-height:90vh;overflow:auto;padding:22px;display:flex;flex-direction:column;gap:16px}
+.card h2{font-family:var(--display);font-weight:400;color:var(--volt);margin:0;font-size:34px;text-align:center;text-wrap:balance}
+.podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));align-items:end;gap:8px;text-align:center}
+.step{background:var(--ink-3);border-radius:12px 12px 4px 4px;padding:10px 6px;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;min-width:0}
+.step .pos{font-family:var(--display);font-size:28px}
+.step .nm{font-weight:800;overflow-wrap:anywhere}
+.step .tm{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.s1{min-height:150px;background:linear-gradient(var(--volt),var(--volt-deep));color:var(--ink)}
+.s1 .tm{color:#5a4300}
+.s2{min-height:115px}.s3{min-height:90px}
+.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
+.rank li{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:8px;padding:6px 10px;background:var(--ink);border-radius:8px}
+.rank li.win{outline:1px solid var(--volt)}
+.rank .p{color:var(--volt);font-weight:800}
+.rank .n{overflow-wrap:anywhere}
+.rank .t{color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions>*{flex:1 1 150px}
+.note{font-size:12px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){.go{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <svg class="bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 1 4 13.5h6.2L8.8 23 20 9.6h-6.4z" fill="#ffd23f" stroke="#f4a300" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    <h1>Corrida dos Pikachus</h1>
+    <p>Coloque os nomes, escolha a duração e solte os Pikachus na pista. Quem cruzar primeiro a linha dos 100 metros vence o sorteio.</p>
+  </header>
+
+  <div class="grid">
+    <aside class="panel">
+      <div>
+        <label for="nomes">Participantes (um por linha)</label>
+        <textarea id="nomes" spellcheck="false"></textarea>
+        <div class="count" id="contador"></div>
+      </div>
+      <div class="row">
+        <div style="flex:1"><label for="qtd">Ou só uma quantidade</label><input id="qtd" type="number" min="2" max="100" value="10"></div>
+        <button class="btn2" id="gerar" type="button">Gerar</button>
+      </div>
+      <div class="row">
+        <button class="btn2" id="embaralhar" type="button" style="flex:1">Embaralhar</button>
+        <button class="btn2" id="limpar" type="button" style="flex:1">Limpar</button>
+      </div>
+      <div>
+        <span class="lbl" id="durLbl">Duração da corrida</span>
+        <div class="seg" role="group" aria-labelledby="durLbl" id="dur">
+          <button type="button" data-s="10" aria-pressed="false">10s</button>
+          <button type="button" data-s="20" aria-pressed="true">20s</button>
+          <button type="button" data-s="30" aria-pressed="false">30s</button>
+          <button type="button" data-s="60" aria-pressed="false">60s</button>
+        </div>
+      </div>
+      <div>
+        <label for="vencedores">Quantos vencedores destacar</label>
+        <select id="vencedores"><option>1</option><option>2</option><option selected>3</option><option>5</option><option>10</option></select>
+      </div>
+      <label class="check" for="som"><input type="checkbox" id="som" checked> Som ligado</label>
+      <button class="go" id="largar" type="button">Largar!</button>
+      <p class="note">Durante a corrida cada Pikachu muda de ritmo ao acaso, pode levar um choque do trovão (arranca na frente) ou tropeçar. Ninguém sabe quem ganha até o fim.</p>
+    </aside>
+
+    <section class="stage" aria-label="Pista de corrida">
+      <div class="scroller" id="scroller"><canvas id="pista"></canvas></div>
+      <div class="timer" id="timer">0,0s</div>
+      <div class="hud" id="hud" hidden><h3>Ao vivo</h3><ol id="live"></ol></div>
+      <div class="count3" id="c3" hidden></div>
+    </section>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="resTit">
+    <h2 id="resTit">Temos um campeão!</h2>
+    <div class="podium" id="podium"></div>
+    <div><span class="lbl">Classificação completa</span><ol class="rank" id="rank"></ol></div>
+    <div class="actions">
+      <button class="go" id="denovo" type="button">Correr de novo</button>
+      <button class="btn2" id="copiar" type="button">Copiar resultado</button>
+      <button class="btn2" id="fechar" type="button">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const nomesEl=$('nomes'), cv=$('pista'), ctx=cv.getContext('2d'), scroller=$('scroller');
+const EXEMPLO=['Ana','Bruno','Carla','Diego','Elisa','Fábio','Gabi','Heitor'];
+const SCARF=['#e63946','#3a86ff','#8338ec','#06d6a0','#ff7b00','#ff4d8d','#00b4d8','#8ac926','#6a4c93','#f15bb5','#118ab2','#ef476f'];
+const START=150, LEN=2400, MAX=100;
+let racers=[], state='idle', D=20, raceT=0, cam=0, finished=[], lastTs=0, W=800, H=400, laneH=50, top=36, flashes=[];
+
+try{ const s=localStorage.getItem('pika-nomes'); nomesEl.value = s!=null && s.trim() ? s : EXEMPLO.join('\n'); }catch(e){ nomesEl.value=EXEMPLO.join('\n'); }
+function salvar(){ try{ localStorage.setItem('pika-nomes',nomesEl.value); }catch(e){} }
+const busy=()=>state==='racing'||state==='count';
+
+function lerNomes(){ return nomesEl.value.split('\n').map(s=>s.trim()).filter(Boolean); }
+function montar(){
+  const todos=lerNomes(), ns=todos.slice(0,MAX);
+  racers=ns.map((n,i)=>({name:n,i,p:0,v:0,target:0,next:0,boost:0,stun:0,done:false,ft:0,ph:Math.random()*6,scarf:SCARF[i%SCARF.length]}));
+  $('contador').innerHTML = `<b>${ns.length}</b> Pikachu${ns.length===1?'':'s'} na pista` + (todos.length>MAX?` · máximo de ${MAX}, o resto ficou de fora`:'') + (ns.length<2?' · coloque pelo menos 2':'');
+  $('largar').disabled = ns.length<2;
+  cam=0; layout();
+}
+nomesEl.addEventListener('input',()=>{ if(busy())return; salvar(); montar(); });
+$('gerar').onclick=()=>{ let n=Math.max(2,Math.min(MAX,parseInt($('qtd').value)||10)); $('qtd').value=n;
+  nomesEl.value=Array.from({length:n},(_,i)=>`Pikachu ${i+1}`).join('\n'); salvar(); montar(); };
+$('embaralhar').onclick=()=>{ const a=lerNomes(); for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} nomesEl.value=a.join('\n'); salvar(); montar(); };
+$('limpar').onclick=()=>{ nomesEl.value=''; salvar(); montar(); nomesEl.focus(); };
+document.querySelectorAll('#dur button').forEach(b=>b.onclick=()=>{ D=+b.dataset.s; document.querySelectorAll('#dur button').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
+
+// som (Web Audio, só toca depois de um clique)
+let ac=null;
+function tom(f,dur,type='square',vol=.06,f2){ if(!$('som').checked)return; try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  const o=ac.createOscillator(), g=ac.createGain(), t=ac.currentTime; o.type=type; o.frequency.setValueAtTime(f,t); if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(ac.destination); o.start(t); o.stop(t+dur); }catch(e){} }
+const zap=()=>tom(1400,.12,'sawtooth',.03,300);
+const fanfarra=()=>{ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tom(f,.25,'square',.06),i*130)); setTimeout(()=>{tom(900,.18,'triangle',.08,1500);setTimeout(()=>tom(1500,.3,'triangle',.08,700),180);},650); };
+
+function layout(){
+  W=scroller.clientWidth||800;
+  const n=Math.max(racers.length,1);
+  laneH=Math.max(22,Math.min(66,440/n));
+  H=top+n*laneH+28;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+new ResizeObserver(()=>layout()).observe(scroller);
+
+const wx=p=>START+p*LEN;
+function pista(){
+  ctx.fillStyle='#3a9a3e'; ctx.fillRect(0,0,W,H);
+  for(let i=0;i<racers.length;i++){ ctx.fillStyle=i%2?'#40a544':'#369039'; ctx.fillRect(0,top+i*laneH,W,laneH); }
+  ctx.fillStyle='#2c6e2f'; ctx.fillRect(0,0,W,top);
+  ctx.fillStyle='#2c6e2f'; ctx.fillRect(0,H-28,W,28);
+  ctx.font='800 12px Nunito,system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let m=0;m<=100;m+=10){ const x=wx(m/100)-cam; if(x<-50||x>W+50)continue;
+    if(m>0&&m<100){ ctx.fillStyle='#ffffff40'; ctx.fillRect(x-1,top,2,H-top-28); }
+    ctx.fillStyle='#fff8e1'; ctx.fillText(m===0?'LARGADA':m===100?'CHEGADA':m+' m',x,top/2); }
+  let x=wx(0)-cam; ctx.fillStyle='#fff'; ctx.fillRect(x-3,top,6,H-top-28);
+  x=wx(1)-cam; const q=8;
+  for(let y=top,r=0;y<H-28;y+=q,r++) for(let c=0;c<3;c++){ ctx.fillStyle=(r+c)%2?'#111':'#fff'; ctx.fillRect(x-12+c*q,y,q,Math.min(q,H-28-y)); }
+}
+// Pikachu: mascote original (pintinho elétrico com crista de raio), traço vetorial. Pés em x,y; s = altura em px
+const img=new Image(); img.src='corredor.png';
+function sprite(x,y,s,ph,run,scarf,stun,boost){
+  if(img.complete&&img.naturalWidth){
+    const N=4, fw=img.naturalWidth/N, fh=img.naturalHeight, f=run?Math.floor(ph/(Math.PI*2)*N)%N:0;
+    const h=s*1.3, w=h*fw/fh;
+    ctx.save(); ctx.translate(x,y); if(stun>0)ctx.rotate(Math.sin(ph*3)*.22);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(img,f*fw,0,fw,fh,-w/2,-h,w,h); ctx.restore(); return;
+  }
+  ctx.save(); const b=run?Math.abs(Math.sin(ph))*s*.08:0;
+  ctx.translate(x,y-b); const u=s/52; ctx.scale(u,u);
+  if(stun>0) ctx.rotate(Math.sin(ph*3)*.22);
+  const O='#3b2a12'; ctx.lineWidth=1.6; ctx.strokeStyle=O; ctx.lineJoin='round';
+  const poly=(pts,fill)=>{ctx.beginPath();pts.forEach(([a,c],i)=>i?ctx.lineTo(a,c):ctx.moveTo(a,c));ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.stroke();};
+  const ell=(cx,cy,rx,ry,fill,st=true)=>{ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();if(st)ctx.stroke();};
+  const lg=run?Math.sin(ph)*4:0, t=run?-3:0;
+  // rabinho de penas
+  poly([[-11,-18],[-19,-24],[-15,-19],[-21,-17],[-12,-13]],'#f4b400');
+  // pés
+  poly([[-4+lg,-3],[2+lg,-3],[3+lg,0],[-5+lg,0]],'#ff8c1a'); poly([[4-lg,-3],[10-lg,-3],[11-lg,0],[3-lg,0]],'#ff8c1a');
+  // crista em forma de raio
+  poly([[-1,-35],[3+t,-47],[4+t,-41],[10+t,-50],[8,-36]],boost>0?'#7fe9ff':'#ff8c1a');
+  // corpo redondo
+  ell(1,-19,14.5,16,'#ffd23f');
+  ell(5,-13,8.5,8,'#fff1a8',false);
+  // asa batendo
+  ctx.save(); ctx.translate(-4,-18); ctx.rotate(run?Math.sin(ph)*.5:0); ell(0,0,6.5,4,'#f4b400'); ctx.restore();
+  // cachecol
+  ctx.fillStyle=scarf; ctx.beginPath(); ctx.roundRect(-9,-24,22,4.5,2); ctx.fill(); ctx.stroke();
+  poly([[-9,-23],[-16-lg*.6,-20],[-15-lg*.6,-17],[-9,-20]],scarf);
+  // olho
+  if(stun>0){ ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(7,-33);ctx.lineTo(12,-28);ctx.moveTo(12,-33);ctx.lineTo(7,-28);ctx.stroke(); }
+  else { ell(9.5,-30,3.8,4.4,'#fff'); ell(10.8,-29.6,2,2.6,'#1b1b1b',false); ell(11.4,-30.8,.8,.8,'#fff',false); }
+  // bico
+  poly([[14.5,-27],[21,-25],[14.5,-22.5]],'#ff8c1a');
+  ctx.restore();
+}
+function raio(x,y1){
+  ctx.save(); ctx.strokeStyle='#fff7a8'; ctx.shadowColor='#ffd23f'; ctx.shadowBlur=12; ctx.lineWidth=2.5; ctx.beginPath();
+  let y=0; ctx.moveTo(x,y); while(y<y1){ y+=8+Math.random()*8; ctx.lineTo(x+(Math.random()-.5)*14,Math.min(y,y1)); }
+  ctx.stroke(); ctx.restore();
+}
+function desenhar(){
+  pista();
+  const s=laneH*.95, fs=Math.max(10,Math.min(15,laneH*.32));
+  racers.forEach((r,i)=>{
+    const y=top+(i+1)*laneH-laneH*.06, x=wx(r.p)-cam, ly=top+i*laneH+laneH/2;
+    if(x<-260||x>W+80)return;
+    ctx.font=`800 ${fs}px Nunito,system-ui`; ctx.textAlign='right'; ctx.textBaseline='middle';
+    const label=r.name.length>18?r.name.slice(0,17)+'…':r.name, lx=x-s*.55, tw=ctx.measureText(label).width;
+    ctx.fillStyle='#1b1f3bb8'; ctx.beginPath(); ctx.roundRect(lx-tw-8,ly-fs*.75,tw+12,fs*1.5,6); ctx.fill();
+    ctx.fillStyle=r.scarf; ctx.fillRect(lx-tw-8,ly-fs*.75,3,fs*1.5);
+    ctx.fillStyle='#fff8e1'; ctx.fillText(label,lx-1,ly+1);
+    if(r.boost>0){ ctx.fillStyle='#fff6'; for(let k=1;k<4;k++)ctx.fillRect(x-s*.5-k*9,ly-8+k*4,7,2); }
+    sprite(x,y,s,r.ph,state==='racing'&&!r.done&&r.stun<=0,r.scarf,r.stun,r.boost);
+    if(r.done){ const pos=finished.indexOf(r)+1; ctx.textAlign='left'; ctx.font=`400 ${fs+3}px "Lilita One",system-ui`;
+      ctx.fillStyle=pos===1?'#ffd23f':'#fff8e1'; ctx.fillText(pos+'º',x+s*.4,ly); }
+  });
+  ctx.textBaseline='alphabetic';
+  flashes=flashes.filter(f=>f.t>0); flashes.forEach(f=>raio(f.x-cam,f.y));
+}
+
+function rankAtual(){ return [...racers].sort((a,b)=> (b.done-a.done) || (a.done? a.ft-b.ft : b.p-a.p)); }
+function passo(dt){
+  raceT+=dt; const base=1/D;
+  racers.forEach(r=>{
+    if(r.done){ r.ph+=dt*4; return; }
+    if(raceT>=r.next){ r.target=base*(.65+Math.random()*.7); r.next=raceT+.4+Math.random()*1.2*(D/20); }
+    if(r.boost<=0&&r.stun<=0){
+      if(Math.random()<dt*.09*(20/D)){ r.boost=.8+Math.random()*.6; flashes.push({x:wx(r.p),y:top+r.i*laneH+laneH*.6,t:.18}); zap(); }
+      else if(Math.random()<dt*.045*(20/D)){ r.stun=.4+Math.random()*.6; }
+    }
+    let alvo=r.target; if(r.boost>0){alvo*=2.1;r.boost-=dt;} if(r.stun>0){alvo*=.08;r.stun-=dt;}
+    r.v+=(alvo-r.v)*Math.min(1,dt*3);
+    r.p+=r.v*dt; r.ph+=dt*(8+r.v*D*10);
+    if(r.p>=1){ r.p=1; r.done=true; r.ft=raceT; finished.push(r); if(finished.length===1)fanfarra(); else tom(660,.08,'square',.03); }
+  });
+  flashes.forEach(f=>f.t-=dt);
+  const lead=Math.max(...racers.map(r=>r.p));
+  const alvoCam=Math.max(0,Math.min(wx(lead)-W*.62, START+LEN+80-W));
+  cam+=(alvoCam-cam)*Math.min(1,dt*4);
+  $('timer').textContent=raceT.toFixed(1).replace('.',',')+'s';
+  $('live').innerHTML=rankAtual().slice(0,5).map(r=>`<li>${esc(r.name)}${r.done?' ✓':''}</li>`).join('');
+  if(finished.length===racers.length){ state='done'; setTimeout(resultado,1100); }
+}
+function loop(ts){
+  const dt=Math.min(.05,(ts-(lastTs||ts))/1000); lastTs=ts;
+  if(state==='racing')passo(dt);
+  desenhar(); requestAnimationFrame(loop);
+}
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const controles=()=>[...document.querySelectorAll('.panel button,.panel textarea,.panel input,.panel select')];
+
+function largar(){
+  if(busy())return;
+  $('modal').hidden=true; montar(); if(racers.length<2)return;
+  raceT=0; finished=[]; flashes=[]; state='count';
+  controles().forEach(e=>e.disabled=true);
+  $('hud').hidden=false; $('live').innerHTML=''; $('timer').textContent='0,0s';
+  scroller.scrollTop=0;
+  const c3=$('c3'); c3.hidden=false; let n=3;
+  const tick=()=>{ if(n>0){ c3.textContent=n; tom(520,.15,'square',.07); n--; setTimeout(tick,700);}
+    else { c3.textContent='JÁ!'; tom(1040,.35,'square',.08); setTimeout(()=>c3.hidden=true,500);
+      racers.forEach(r=>{r.target=1/D*(.65+Math.random()*.7); r.v=r.target*.5; r.next=.3+Math.random();}); state='racing'; } };
+  tick();
+}
+function resultado(){
+  controles().forEach(e=>e.disabled=false);
+  $('largar').disabled=racers.length<2;
+  const nv=+$('vencedores').value, fmt=t=>t.toFixed(2).replace('.',',')+'s';
+  $('resTit').textContent = nv>1 ? `Os ${Math.min(nv,finished.length)} primeiros!` : 'Temos um campeão!';
+  const ord=[1,0,2].filter(i=>finished[i]);
+  $('podium').innerHTML=ord.map(i=>`<div class="step s${i+1}"><span class="pos">${i+1}º</span><span class="nm">${esc(finished[i].name)}</span><span class="tm">${fmt(finished[i].ft)}</span></div>`).join('');
+  $('rank').innerHTML=finished.map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${fmt(r.ft)}</span></li>`).join('');
+  $('modal').hidden=false; $('denovo').focus();
+}
+$('largar').onclick=largar; $('denovo').onclick=largar;
+$('fechar').onclick=()=>{ $('modal').hidden=true; };
+$('copiar').onclick=async()=>{
+  const txt='⚡ Corrida dos Pikachus\n'+finished.map((r,i)=>`${i+1}º ${r.name}`).join('\n');
+  try{ await navigator.clipboard.writeText(txt); $('copiar').textContent='Copiado!'; }
+  catch(e){ const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents($('rank')); s.removeAllRanges(); s.addRange(rg); $('copiar').textContent='Selecionado: use Ctrl+C'; }
+  setTimeout(()=>$('copiar').textContent='Copiar resultado',2000);
+};
+document.addEventListener('keydown',e=>{ if(e.key==='Escape')$('modal').hidden=true; });
+
+montar(); requestAnimationFrame(loop);
+})();
+</script>
