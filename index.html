@@ -380,10 +380,9 @@ $('copiar').onclick=async()=>{
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')$('modal').hidden=true; });
 const stageEl=document.querySelector('.stage');
-function setMax(on){ stageEl.classList.toggle('max',on); $('maxbtn').textContent=on?'✕':'⛶'; $('maxbtn').title=$('maxbtn').ariaLabel=on?'Sair da tela cheia':'Maximizar a pista';
-  try{ if(on&&!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{}); if(!on&&document.fullscreenElement)document.exitFullscreen(); }catch(e){} }
+function setMax(on){ stageEl.classList.toggle('max',on); $('maxbtn').textContent=on?'✕':'⛶'; $('maxbtn').title=$('maxbtn').ariaLabel=on?'Restaurar a pista':'Maximizar a pista'; }
 $('maxbtn').onclick=()=>setMax(!stageEl.classList.contains('max'));
-document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement&&stageEl.classList.contains('max'))setMax(false); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('modal').hidden&&stageEl.classList.contains('max'))setMax(false); },true);
 
 montar(); requestAnimationFrame(loop);
 })();
