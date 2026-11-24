@@ -54,6 +54,9 @@ button:disabled{cursor:not-allowed}
 .scroller{max-height:72vh;overflow-y:auto}
 .maxbtn{position:absolute;top:4px;left:6px;z-index:2;width:30px;height:28px;border:0;border-radius:8px;background:#1b1f3bcc;color:#fff8e1;font-size:16px;line-height:1;cursor:pointer}
 .maxbtn:hover{background:#1b1f3b}
+.maxgo{display:none}
+.stage.max .maxgo{display:block;position:absolute;bottom:12px;left:0;right:0;margin:0 auto;width:fit-content;z-index:2;padding:10px 34px;font-size:24px}
+.stage.max .maxgo[hidden]{display:none}
 .stage.max{position:fixed;inset:0;z-index:15;border-radius:0;border:0}
 .stage.max .scroller{max-height:100vh;height:100vh}
 canvas{display:block;width:100%}
@@ -130,6 +133,7 @@ canvas{display:block;width:100%}
     <section class="stage" aria-label="Pista de corrida">
       <button class="maxbtn" id="maxbtn" type="button" title="Maximizar a pista" aria-label="Maximizar a pista">⛶</button>
       <div class="scroller" id="scroller"><canvas id="pista"></canvas></div>
+      <button class="go maxgo" id="largar2" type="button">Largar!</button>
       <div class="timer" id="timer">0,0s</div>
       <div class="hud" id="hud" hidden><h3>Ao vivo</h3><ol id="live"></ol></div>
       <div class="count3" id="c3" hidden></div>
@@ -308,7 +312,7 @@ function largar(){
   if(busy())return;
   $('modal').hidden=true; montar(); if(racers.length<2)return;
   raceT=0; finished=[]; flashes=[]; state='count';
-  controles().forEach(e=>e.disabled=true);
+  controles().forEach(e=>e.disabled=true); $('largar2').hidden=true;
   $('hud').hidden=false; $('live').innerHTML=''; $('timer').textContent='0,0s';
   scroller.scrollTop=0;
   const c3=$('c3'); c3.hidden=false; let n=3;
@@ -319,7 +323,7 @@ function largar(){
 }
 function resultado(){
   controles().forEach(e=>e.disabled=false);
-  $('largar').disabled=racers.length<2;
+  $('largar').disabled=racers.length<2; $('largar2').hidden=false;
   const nv=+$('vencedores').value, fmt=t=>t.toFixed(2).replace('.',',')+'s';
   $('resTit').textContent = nv>1 ? `Os ${Math.min(nv,finished.length)} primeiros!` : 'Temos um campeão!';
   const ordem=[...finished,...rankAtual().filter(r=>!r.done)]; const ord=[1,0,2].filter(i=>finished[i]);
@@ -327,7 +331,7 @@ function resultado(){
   $('rank').innerHTML=ordem.map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${r.done?fmt(r.ft):'—'}</span></li>`).join('');
   $('modal').hidden=false; $('denovo').focus();
 }
-$('largar').onclick=largar; $('denovo').onclick=largar;
+$('largar').onclick=largar; $('largar2').onclick=largar; $('denovo').onclick=largar;
 $('fechar').onclick=()=>{ $('modal').hidden=true; };
 $('copiar').onclick=async()=>{
   const txt='⚡ Corrida dos Pikachus\n'+[...finished,...rankAtual().filter(r=>!r.done)].map((r,i)=>`${i+1}º ${r.name}`).join('\n');
