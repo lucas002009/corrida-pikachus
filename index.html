@@ -70,6 +70,13 @@ canvas{display:block;width:100%}
 .modal{position:fixed;inset:0;background:#0b0d22cc;display:grid;place-items:center;padding:20px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px));z-index:20}
 .card{background:var(--ink-2);border:2px solid var(--volt);border-radius:20px;width:min(560px,100%);max-height:90vh;overflow:auto;padding:22px;display:flex;flex-direction:column;gap:16px}
 .card h2{font-family:var(--display);font-weight:400;color:var(--volt);margin:0;font-size:34px;text-align:center;text-wrap:balance}
+.qtdv{margin:-8px 0 0;text-align:center;font-weight:800;color:var(--volt);font-size:15px}
+.extras{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.extras div{background:var(--ink-3);border:1px solid var(--volt);border-radius:10px;padding:6px 8px;display:flex;gap:6px;align-items:baseline;min-width:0}
+.extras b{font-family:var(--display);font-weight:400;color:var(--volt)}
+.extras span{overflow-wrap:anywhere;font-weight:800}
+.extras small{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+#confete{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:25}
 .podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));align-items:end;gap:8px;text-align:center}
 .step{background:var(--ink-3);border-radius:12px 12px 4px 4px;padding:10px 6px;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;min-width:0}
 .step .pos{font-family:var(--display);font-size:28px}
@@ -141,10 +148,13 @@ canvas{display:block;width:100%}
   </div>
 </div>
 
+<canvas id="confete" hidden></canvas>
 <div class="modal" id="modal" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="resTit">
     <h2 id="resTit">Temos um campeão!</h2>
+    <p class="qtdv" id="qtdv"></p>
     <div class="podium" id="podium"></div>
+    <div class="extras" id="extras"></div>
     <div><span class="lbl">Classificação completa</span><ol class="rank" id="rank"></ol></div>
     <div class="actions">
       <button class="go" id="denovo" type="button">Correr de novo</button>
@@ -305,7 +315,7 @@ function passo(dt){
   cam+=(alvoCam-cam)*Math.min(1,dt*4);
   $('timer').textContent=raceT.toFixed(1).replace('.',',')+'s';
   $('live').innerHTML=rankAtual().slice(0,5).map(r=>`<li>${esc(r.name)}${r.done?' ✓':''}</li>`).join('');
-  if(finished.length>=Math.min(3,racers.length)){ state='done'; parar(musCorrida); setTimeout(resultado,1100); }
+  if(finished.length>=Math.min(Math.max(3,+$('vencedores').value),racers.length)){ state='done'; parar(musCorrida); setTimeout(resultado,1100); }
 }
 function loop(ts){
   const dt=Math.min(.05,(ts-(lastTs||ts))/1000); lastTs=ts;
@@ -329,15 +339,36 @@ function largar(){
       racers.forEach(r=>{r.target=1/D*(.65+Math.random()*.7); r.v=r.target*.5; r.next=.3+Math.random();}); state='racing'; tocar(musCorrida); } };
   tick();
 }
+let confRaf=0;
+function confetes(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const c=$('confete'), g=c.getContext('2d'), dpr=Math.min(devicePixelRatio||1,2), w=innerWidth, h=innerHeight;
+  c.hidden=false; c.width=w*dpr; c.height=h*dpr; g.setTransform(dpr,0,0,dpr,0,0);
+  const cores=['#ffd23f','#f4a300','#e63946','#3a86ff','#06d6a0','#ff4d8d','#ffffff','#8338ec'];
+  const ps=Array.from({length:220},(_,i)=>{ const lado=i%2?1:0;
+    return {x:lado?w+10:-10, y:h*(.55+Math.random()*.35), vx:(lado?-1:1)*(4+Math.random()*9), vy:-(9+Math.random()*10),
+      s:5+Math.random()*7, r:Math.random()*6, vr:(Math.random()-.5)*.4, c:cores[i%cores.length], f:Math.random()*6}; });
+  // segunda leva caindo do topo
+  for(let i=0;i<120;i++) ps.push({x:Math.random()*w, y:-20-Math.random()*h*.6, vx:(Math.random()-.5)*2, vy:1+Math.random()*2,
+      s:5+Math.random()*7, r:Math.random()*6, vr:(Math.random()-.5)*.4, c:cores[i%cores.length], f:Math.random()*6});
+  cancelAnimationFrame(confRaf); const t0=performance.now();
+  const anima=now=>{ const t=(now-t0)/1000; g.clearRect(0,0,w,h); g.globalAlpha=t>4?Math.max(0,1-(t-4)):1;
+    ps.forEach(p=>{ p.vy+=.25; p.vx*=.99; p.vy=Math.min(p.vy,5); p.x+=p.vx+Math.sin(t*3+p.f)*.6; p.y+=p.vy; p.r+=p.vr;
+      g.save(); g.translate(p.x,p.y); g.rotate(p.r); g.scale(1,Math.cos(t*6+p.f)); g.fillStyle=p.c; g.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); g.restore(); });
+    if(t<5) confRaf=requestAnimationFrame(anima); else { g.clearRect(0,0,w,h); c.hidden=true; } };
+  confRaf=requestAnimationFrame(anima);
+}
 function resultado(){
   controles().forEach(e=>e.disabled=false);
   $('largar').disabled=racers.length<2; $('largar2').hidden=false;
   const nv=+$('vencedores').value, fmt=t=>t.toFixed(2).replace('.',',')+'s';
   $('resTit').textContent = nv>1 ? `Os ${Math.min(nv,finished.length)} primeiros!` : 'Temos um campeão!';
-  const ordem=[...finished,...rankAtual().filter(r=>!r.done)]; const ord=[1,0,2].filter(i=>finished[i]);
+  const ordem=[...finished,...rankAtual().filter(r=>!r.done)]; const nW=Math.min(nv,finished.length); const ord=[1,0,2].filter(i=>i<nW&&finished[i]);
   $('podium').innerHTML=ord.map(i=>`<div class="step s${i+1}"><span class="pos">${i+1}º</span><span class="nm">${esc(finished[i].name)}</span><span class="tm">${fmt(finished[i].ft)}</span></div>`).join('');
+  $('qtdv').textContent = `🏆 ${nW} vencedor${nW===1?'':'es'}`;
+  $('extras').innerHTML=finished.slice(3,nW).map((r,k)=>`<div><b>${k+4}º</b><span>${esc(r.name)}</span><small>${fmt(r.ft)}</small></div>`).join('');
   $('rank').innerHTML=ordem.map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${r.done?fmt(r.ft):'—'}</span></li>`).join('');
-  $('modal').hidden=false; $('denovo').focus(); tocar(musVitoria);
+  $('modal').hidden=false; $('denovo').focus(); tocar(musVitoria); confetes();
 }
 $('largar').onclick=largar; $('largar2').onclick=largar; $('denovo').onclick=largar;
 $('fechar').onclick=()=>{ $('modal').hidden=true; };
