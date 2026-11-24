@@ -187,6 +187,13 @@ let ac=null;
 function tom(f,dur,type='square',vol=.06,f2){ if(!$('som').checked)return; try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)();
   const o=ac.createOscillator(), g=ac.createGain(), t=ac.currentTime; o.type=type; o.frequency.setValueAtTime(f,t); if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
   g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(ac.destination); o.start(t); o.stop(t+dur); }catch(e){} }
+// músicas: tensão durante a corrida e vitória no anúncio dos campeões
+const musCorrida=new Audio('musica-corrida.m4a'), musVitoria=new Audio('musica-vitoria.m4a'); musCorrida.loop=true;
+[musCorrida,musVitoria].forEach(a=>a.preload='auto');
+const parar=a=>{ a.pause(); a.currentTime=0; };
+const tocar=a=>{ if(!$('som').checked)return; a.currentTime=0; a.play().catch(()=>{}); };
+function liberarAudio(){ [musCorrida,musVitoria].forEach(a=>{ if(a.dataset.ok)return; a.muted=true; a.play().then(()=>{ a.pause(); a.currentTime=0; a.muted=false; a.dataset.ok=1; }).catch(()=>{ a.muted=false; }); }); }
+$('som').addEventListener('change',()=>{ if(!$('som').checked){ musCorrida.pause(); musVitoria.pause(); } else if(state==='racing') musCorrida.play().catch(()=>{}); });
 const zap=()=>tom(1400,.12,'sawtooth',.03,300);
 const fanfarra=()=>{ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tom(f,.25,'square',.06),i*130)); setTimeout(()=>{tom(900,.18,'triangle',.08,1500);setTimeout(()=>tom(1500,.3,'triangle',.08,700),180);},650); };
 
@@ -298,7 +305,7 @@ function passo(dt){
   cam+=(alvoCam-cam)*Math.min(1,dt*4);
   $('timer').textContent=raceT.toFixed(1).replace('.',',')+'s';
   $('live').innerHTML=rankAtual().slice(0,5).map(r=>`<li>${esc(r.name)}${r.done?' ✓':''}</li>`).join('');
-  if(finished.length>=Math.min(3,racers.length)){ state='done'; setTimeout(resultado,1100); }
+  if(finished.length>=Math.min(3,racers.length)){ state='done'; parar(musCorrida); setTimeout(resultado,1100); }
 }
 function loop(ts){
   const dt=Math.min(.05,(ts-(lastTs||ts))/1000); lastTs=ts;
@@ -311,6 +318,7 @@ const controles=()=>[...document.querySelectorAll('.panel button,.panel textarea
 function largar(){
   if(busy())return;
   $('modal').hidden=true; montar(); if(racers.length<2)return;
+  parar(musVitoria); parar(musCorrida); liberarAudio();
   raceT=0; finished=[]; flashes=[]; state='count';
   controles().forEach(e=>e.disabled=true); $('largar2').hidden=true;
   $('hud').hidden=false; $('live').innerHTML=''; $('timer').textContent='0,0s';
@@ -318,7 +326,7 @@ function largar(){
   const c3=$('c3'); c3.hidden=false; let n=3;
   const tick=()=>{ if(n>0){ c3.textContent=n; tom(520,.15,'square',.07); n--; setTimeout(tick,700);}
     else { c3.textContent='JÁ!'; tom(1040,.35,'square',.08); setTimeout(()=>c3.hidden=true,500);
-      racers.forEach(r=>{r.target=1/D*(.65+Math.random()*.7); r.v=r.target*.5; r.next=.3+Math.random();}); state='racing'; } };
+      racers.forEach(r=>{r.target=1/D*(.65+Math.random()*.7); r.v=r.target*.5; r.next=.3+Math.random();}); state='racing'; tocar(musCorrida); } };
   tick();
 }
 function resultado(){
@@ -329,7 +337,7 @@ function resultado(){
   const ordem=[...finished,...rankAtual().filter(r=>!r.done)]; const ord=[1,0,2].filter(i=>finished[i]);
   $('podium').innerHTML=ord.map(i=>`<div class="step s${i+1}"><span class="pos">${i+1}º</span><span class="nm">${esc(finished[i].name)}</span><span class="tm">${fmt(finished[i].ft)}</span></div>`).join('');
   $('rank').innerHTML=ordem.map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${r.done?fmt(r.ft):'—'}</span></li>`).join('');
-  $('modal').hidden=false; $('denovo').focus();
+  $('modal').hidden=false; $('denovo').focus(); tocar(musVitoria);
 }
 $('largar').onclick=largar; $('largar2').onclick=largar; $('denovo').onclick=largar;
 $('fechar').onclick=()=>{ $('modal').hidden=true; };
