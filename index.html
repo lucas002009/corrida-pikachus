@@ -155,7 +155,7 @@ canvas{display:block;width:100%}
     <p class="qtdv" id="qtdv"></p>
     <div class="podium" id="podium"></div>
     <div class="extras" id="extras"></div>
-    <div><span class="lbl">Classificação completa</span><ol class="rank" id="rank"></ol></div>
+    <div><span class="lbl">Vencedores</span><ol class="rank" id="rank"></ol></div>
     <div class="actions">
       <button class="go" id="denovo" type="button">Correr de novo</button>
       <button class="btn2" id="copiar" type="button">Copiar resultado</button>
@@ -171,7 +171,8 @@ const stageEl=document.querySelector('.stage');
 const nomesEl=$('nomes'), cv=$('pista'), ctx=cv.getContext('2d'), scroller=$('scroller');
 const EXEMPLO=['Ana','Bruno','Carla','Diego','Elisa','Fábio','Gabi','Heitor'];
 const SCARF=['#e63946','#3a86ff','#8338ec','#06d6a0','#ff7b00','#ff4d8d','#00b4d8','#8ac926','#6a4c93','#f15bb5','#118ab2','#ef476f'];
-const START=150, LEN=2400, MAX=100;
+const START=150, LEN=2400, MAX=100, PISTAS=20;
+const nPistas=()=>Math.min(racers.length,PISTAS), pistaDe=r=>r.i%PISTAS; // acima de 20, dividem pista
 let racers=[], state='idle', D=20, raceT=0, cam=0, finished=[], lastTs=0, W=800, H=400, laneH=50, top=36, flashes=[];
 
 try{ const s=localStorage.getItem('pika-nomes'); nomesEl.value = s!=null && s.trim() ? s : EXEMPLO.join('\n'); }catch(e){ nomesEl.value=EXEMPLO.join('\n'); }
@@ -210,7 +211,7 @@ const fanfarra=()=>{ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tom(f,.25,
 
 function layout(){
   W=scroller.clientWidth||800;
-  const n=Math.max(racers.length,1);
+  const n=Math.max(nPistas(),1);
   const cheio=stageEl.classList.contains('max');
   laneH=cheio ? Math.max(22,(scroller.clientHeight-top-28)/n) : Math.max(22,Math.min(66,440/n));
   H=top+n*laneH+28;
@@ -223,7 +224,7 @@ new ResizeObserver(()=>layout()).observe(scroller);
 const wx=p=>START+p*LEN;
 function pista(){
   ctx.fillStyle='#3a9a3e'; ctx.fillRect(0,0,W,H);
-  for(let i=0;i<racers.length;i++){ ctx.fillStyle=i%2?'#40a544':'#369039'; ctx.fillRect(0,top+i*laneH,W,laneH); }
+  for(let i=0;i<nPistas();i++){ ctx.fillStyle=i%2?'#40a544':'#369039'; ctx.fillRect(0,top+i*laneH,W,laneH); }
   ctx.fillStyle='#2c6e2f'; ctx.fillRect(0,0,W,top);
   ctx.fillStyle='#2c6e2f'; ctx.fillRect(0,H-28,W,28);
   ctx.font='800 12px Nunito,system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -280,8 +281,8 @@ function raio(x,y1){
 function desenhar(){
   pista();
   const s=Math.min(laneH*.95,110), fs=Math.max(10,Math.min(15,laneH*.32));
-  racers.forEach((r,i)=>{
-    const y=top+(i+1)*laneH-laneH*.06, x=wx(r.p)-cam, ly=top+i*laneH+laneH/2;
+  racers.forEach(r=>{
+    const i=pistaDe(r), y=top+(i+1)*laneH-laneH*.06, x=wx(r.p)-cam, ly=top+i*laneH+laneH/2;
     if(x<-260||x>W+80)return;
     ctx.font=`800 ${fs}px Nunito,system-ui`; ctx.textAlign='right'; ctx.textBaseline='middle';
     const label=r.name.length>18?r.name.slice(0,17)+'…':r.name, lx=x-s*.55, tw=ctx.measureText(label).width;
@@ -304,7 +305,7 @@ function passo(dt){
     if(r.done){ r.ph+=dt*4; return; }
     if(raceT>=r.next){ r.target=base*(.65+Math.random()*.7); r.next=raceT+.4+Math.random()*1.2*(D/20); }
     if(r.boost<=0&&r.stun<=0){
-      if(Math.random()<dt*.09*(20/D)){ r.stun=.4+Math.random()*.6; flashes.push({r,y:top+r.i*laneH+laneH*.6,t:r.stun}); zap(); }
+      if(Math.random()<dt*.09*(20/D)){ r.stun=.4+Math.random()*.6; flashes.push({r,y:top+pistaDe(r)*laneH+laneH*.6,t:r.stun}); zap(); }
     }
     let alvo=r.target; if(r.stun>0){alvo*=.08;r.stun-=dt;}
     r.v+=(alvo-r.v)*Math.min(1,dt*3);
@@ -369,13 +370,14 @@ function resultado(){
   $('podium').innerHTML=ord.map(i=>`<div class="step s${i+1}"><span class="pos">${i+1}º</span><span class="nm">${esc(finished[i].name)}</span><span class="tm">${fmt(finished[i].ft)}</span></div>`).join('');
   $('qtdv').textContent = `🏆 ${nW} vencedor${nW===1?'':'es'}`;
   $('extras').innerHTML=finished.slice(3,nW).map((r,k)=>`<div><b>${k+4}º</b><span>${esc(r.name)}</span><small>${fmt(r.ft)}</small></div>`).join('');
-  $('rank').innerHTML=ordem.map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${r.done?fmt(r.ft):'—'}</span></li>`).join('');
+  $('rank').innerHTML=finished.slice(0,nW).map((r,i)=>`<li class="${i<nv?'win':''}"><span class="p">${i+1}º</span><span class="n">${esc(r.name)}</span><span class="t">${r.done?fmt(r.ft):'—'}</span></li>`).join('');
   $('modal').hidden=false; $('denovo').focus(); tocar(musVitoria); confetes();
 }
 $('largar').onclick=largar; $('largar2').onclick=largar; $('denovo').onclick=largar;
 $('fechar').onclick=()=>{ $('modal').hidden=true; };
 $('copiar').onclick=async()=>{
-  const txt='⚡ Corrida dos Pikachus\n'+[...finished,...rankAtual().filter(r=>!r.done)].map((r,i)=>`${i+1}º ${r.name}`).join('\n');
+  const nG=Math.min(+$('vencedores').value,finished.length);
+  const txt=finished.slice(0,nG).map((r,i)=>`${i+1}º ${r.name}`).join('\n');
   try{ await navigator.clipboard.writeText(txt); $('copiar').textContent='Copiado!'; }
   catch(e){ const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents($('rank')); s.removeAllRanges(); s.addRange(rg); $('copiar').textContent='Selecionado: use Ctrl+C'; }
   setTimeout(()=>$('copiar').textContent='Copiar resultado',2000);
