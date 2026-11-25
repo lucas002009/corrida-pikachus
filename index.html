@@ -138,7 +138,7 @@ canvas{display:block;width:100%}
     </aside>
 
     <section class="stage" aria-label="Pista de corrida">
-      <button class="maxbtn" id="maxbtn" type="button" title="Maximizar a pista" aria-label="Maximizar a pista">⛶</button>
+      <button class="maxbtn" id="maxbtn" type="button" title="Preencher a aba" aria-label="Preencher a aba">⤢</button>
       <div class="scroller" id="scroller"><canvas id="pista"></canvas></div>
       <button class="go maxgo" id="largar2" type="button">Largar!</button>
       <div class="timer" id="timer">0,0s</div>
@@ -167,6 +167,7 @@ canvas{display:block;width:100%}
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
+const stageEl=document.querySelector('.stage');
 const nomesEl=$('nomes'), cv=$('pista'), ctx=cv.getContext('2d'), scroller=$('scroller');
 const EXEMPLO=['Ana','Bruno','Carla','Diego','Elisa','Fábio','Gabi','Heitor'];
 const SCARF=['#e63946','#3a86ff','#8338ec','#06d6a0','#ff7b00','#ff4d8d','#00b4d8','#8ac926','#6a4c93','#f15bb5','#118ab2','#ef476f'];
@@ -210,7 +211,8 @@ const fanfarra=()=>{ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tom(f,.25,
 function layout(){
   W=scroller.clientWidth||800;
   const n=Math.max(racers.length,1);
-  laneH=Math.max(22,Math.min(66,440/n));
+  const cheio=stageEl.classList.contains('max');
+  laneH=cheio ? Math.max(22,(scroller.clientHeight-top-28)/n) : Math.max(22,Math.min(66,440/n));
   H=top+n*laneH+28;
   const dpr=Math.min(window.devicePixelRatio||1,2);
   cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
@@ -277,7 +279,7 @@ function raio(x,y1){
 }
 function desenhar(){
   pista();
-  const s=laneH*.95, fs=Math.max(10,Math.min(15,laneH*.32));
+  const s=Math.min(laneH*.95,110), fs=Math.max(10,Math.min(15,laneH*.32));
   racers.forEach((r,i)=>{
     const y=top+(i+1)*laneH-laneH*.06, x=wx(r.p)-cam, ly=top+i*laneH+laneH/2;
     if(x<-260||x>W+80)return;
@@ -379,8 +381,7 @@ $('copiar').onclick=async()=>{
   setTimeout(()=>$('copiar').textContent='Copiar resultado',2000);
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')$('modal').hidden=true; });
-const stageEl=document.querySelector('.stage');
-function setMax(on){ stageEl.classList.toggle('max',on); $('maxbtn').textContent=on?'✕':'⛶'; $('maxbtn').title=$('maxbtn').ariaLabel=on?'Restaurar a pista':'Maximizar a pista'; }
+function setMax(on){ stageEl.classList.toggle('max',on); $('maxbtn').textContent=on?'✕':'⤢'; $('maxbtn').title=$('maxbtn').ariaLabel=on?'Voltar ao tamanho normal':'Preencher a aba'; layout(); }
 $('maxbtn').onclick=()=>setMax(!stageEl.classList.contains('max'));
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('modal').hidden&&stageEl.classList.contains('max'))setMax(false); },true);
 
