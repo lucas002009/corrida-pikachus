@@ -377,9 +377,9 @@ $('largar').onclick=largar; $('largar2').onclick=largar; $('denovo').onclick=lar
 $('fechar').onclick=()=>{ $('modal').hidden=true; };
 $('copiar').onclick=async()=>{
   const nG=Math.min(+$('vencedores').value,finished.length);
-  const txt=finished.slice(0,nG).map((r,i)=>`${i+1}º ${r.name}`).join('\n');
+  const txt=finished.slice(0,nG).map(r=>r.name).join('\n');
   try{ await navigator.clipboard.writeText(txt); $('copiar').textContent='Copiado!'; }
-  catch(e){ const s=window.getSelection(), rg=document.createRange(); rg.selectNodeContents($('rank')); s.removeAllRanges(); s.addRange(rg); $('copiar').textContent='Selecionado: use Ctrl+C'; }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=txt; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); let ok=false; try{ ok=document.execCommand('copy'); }catch(_){} ta.remove(); $('copiar').textContent=ok?'Copiado!':'Não foi possível copiar'; }
   setTimeout(()=>$('copiar').textContent='Copiar resultado',2000);
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')$('modal').hidden=true; });
